@@ -31,7 +31,7 @@ void main() {
         const AutofillConfiguration config = AutofillConfiguration(
           uniqueIdentifier: 'id',
           autofillHints: <String>[],
-          currentEditingValue: TextEditingValue(),
+          currentEditingValue: TextEditingValue.empty,
         );
 
         json = config.toJson();
@@ -43,8 +43,7 @@ void main() {
     });
 
     test(
-      'AutofillClients send the correct configuration to the platform'
-      'and responds to updateEditingStateWithTag method correctly',
+      'AutofillClients send the correct configuration to the platform and responds to updateEditingStateWithTag method correctly',
       () async {
         final FakeAutofillClient client1 = FakeAutofillClient(const TextEditingValue(text: 'test1'));
         final FakeAutofillClient client2 = FakeAutofillClient(const TextEditingValue(text: 'test2'));
@@ -89,7 +88,8 @@ void main() {
         ));
 
         expect(client2.currentTextEditingValue, text2);
-    });
+      },
+    );
   });
 }
 
@@ -213,7 +213,8 @@ class FakeTextChannel implements MethodChannel {
         print(
           'Index $i did not match:\n'
           '  actual:   ${outgoingCalls[i]}\n'
-          '  expected: ${calls[i]}');
+          '  expected: ${calls[i]}',
+        );
         hasError = true;
       }
     }

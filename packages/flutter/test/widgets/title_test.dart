@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   testWidgets('toString control test', (WidgetTester tester) async {
@@ -18,8 +18,8 @@ void main() {
 
   testWidgets('should handle having no title', (WidgetTester tester) async {
     final Title widget = Title(
-      child: Container(),
       color: const Color(0xFF00FF00),
+      child: Container(),
     );
     expect(widget.toString, isNot(throwsException));
     expect(widget.title, equals(''));
@@ -41,8 +41,8 @@ void main() {
     });
 
     await tester.pumpWidget(Title(
-      child: Container(),
       color: const Color(0xFF00FF00),
+      child: Container(),
     ));
 
     expect(log, hasLength(1));

@@ -8,18 +8,25 @@ import 'package:file/file.dart';
 import 'package:meta/meta.dart';
 import 'package:platform/platform.dart';
 
-import './globals.dart';
 import './repository.dart';
 import './stdio.dart';
 import './version.dart';
 
+const String kIncrement = 'increment';
+const String kCommit = 'commit';
+const String kRemoteName = 'remote';
+const String kJustPrint = 'just-print';
+const String kYes = 'yes';
+const String kForce = 'force';
+const String kSkipTagging = 'skip-tagging';
+
 /// Create a new dev release without cherry picks.
-class RollDev extends Command<void> {
-  RollDev({
-    this.fileSystem,
-    this.platform,
-    this.repository,
-    this.stdio,
+class RollDevCommand extends Command<void> {
+  RollDevCommand({
+    required this.checkouts,
+    required this.fileSystem,
+    required this.platform,
+    required this.stdio,
   }) {
     argParser.addOption(
       kIncrement,
@@ -57,13 +64,23 @@ class RollDev extends Command<void> {
       help: 'Do not create tag and push to remote, only update release branch. '
       'For recovering when the script fails trying to git push to the release branch.'
     );
-    argParser.addFlag(kYes, negatable: false, abbr: 'y', help: 'Skip the confirmation prompt.');
+    argParser.addFlag(
+      kYes,
+      negatable: false,
+      abbr: 'y',
+      help: 'Skip the confirmation prompt.',
+    );
+    argParser.addOption(
+      kRemoteName,
+      help: 'Specifies which git remote to fetch from.',
+      defaultsTo: 'upstream',
+    );
   }
 
+  final Checkouts checkouts;
   final FileSystem fileSystem;
   final Platform platform;
   final Stdio stdio;
-  final Repository repository;
 
   @override
   String get name => 'roll-dev';
@@ -75,10 +92,8 @@ class RollDev extends Command<void> {
   @override
   void run() {
     rollDev(
-      argResults: argResults,
-      fileSystem: fileSystem,
-      platform: platform,
-      repository: repository,
+      argResults: argResults!,
+      repository: FrameworkRepository(checkouts),
       stdio: stdio,
       usage: argParser.usage,
     );
@@ -90,14 +105,12 @@ class RollDev extends Command<void> {
 /// Returns true if publishing was successful, else false.
 @visibleForTesting
 bool rollDev({
-  @required String usage,
-  @required ArgResults argResults,
-  @required Stdio stdio,
-  @required Platform platform,
-  @required FileSystem fileSystem,
-  @required Repository repository,
-  String remoteName = 'origin',
+  required String usage,
+  required ArgResults argResults,
+  required Stdio stdio,
+  required FrameworkRepository repository,
 }) {
+  final String remoteName = argResults[kRemoteName] as String;
   final String level = argResults[kIncrement] as String;
   final String commit = argResults[kCommit] as String;
   final bool justPrint = argResults[kJustPrint] as bool;

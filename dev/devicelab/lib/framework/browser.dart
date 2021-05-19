@@ -7,8 +7,9 @@ import 'dart:convert' show json, utf8, LineSplitter, JsonEncoder;
 import 'dart:io' as io;
 import 'dart:math' as math;
 
-import 'package:path/path.dart' as path;
+import 'package:flutter_devicelab/common.dart';
 import 'package:meta/meta.dart';
+import 'package:path/path.dart' as path;
 import 'package:webkit_inspection_protocol/webkit_inspection_protocol.dart';
 
 /// The number of samples used to extract metrics, such as noise, means,
@@ -194,6 +195,10 @@ class Chrome {
     _tracingCompleter = null;
     _tracingData = null;
     return data;
+  }
+
+  Future<void> reloadPage({bool ignoreCache = false}) async {
+    await _debugConnection.page.reload(ignoreCache: ignoreCache);
   }
 
   /// Stops the Chrome process.
@@ -621,9 +626,9 @@ Future<io.Process> _spawnChromiumProcess(String executable, List<String> args, {
     // A precaution that avoids accumulating browser processes, in case the
     // glibc bug doesn't cause the browser to quit and we keep looping and
     // launching more processes.
-    process.exitCode.timeout(const Duration(seconds: 1), onTimeout: () {
+    unawaited(process.exitCode.timeout(const Duration(seconds: 1), onTimeout: () {
       process.kill();
       return null;
-    });
+    }));
   }
 }

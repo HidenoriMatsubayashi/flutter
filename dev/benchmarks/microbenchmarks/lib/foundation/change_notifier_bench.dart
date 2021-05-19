@@ -21,7 +21,7 @@ void main() {
   final BenchmarkResultPrinter printer = BenchmarkResultPrinter();
 
   void runAddListenerBenchmark(int iteration, {bool addResult = true}) {
-    const String name = 'addListener';
+    const String name = 'add';
     for (int listenerCount = 1; listenerCount <= 5; listenerCount += 1) {
       final List<_Notifier> notifiers = List<_Notifier>.generate(
         iteration,
@@ -44,13 +44,13 @@ void main() {
           description: '$name ($listenerCount listeners)',
           value: averagePerIteration * _kScale,
           unit: 'ns per iteration',
-          name: '$name${listenerCount}_iteration',
+          name: '$name$listenerCount',
         );
     }
   }
 
   void runNotifyListenerBenchmark(int iteration, {bool addResult = true}) {
-    const String name = 'notifyListener';
+    const String name = 'notify';
 
     for (int listenerCount = 0; listenerCount <= 5; listenerCount += 1) {
       final _Notifier notifier = _Notifier();
@@ -70,13 +70,13 @@ void main() {
           description: '$name ($listenerCount listeners)',
           value: averagePerIteration * _kScale,
           unit: 'ns per iteration',
-          name: '$name${listenerCount}_iteration',
+          name: '$name$listenerCount',
         );
     }
   }
 
   void runRemoveListenerBenchmark(int iteration, {bool addResult = true}) {
-    const String name = 'removeListener';
+    const String name = 'remove';
     final List<VoidCallback> listeners = <VoidCallback>[
       () {},
       () {},
@@ -112,13 +112,14 @@ void main() {
           description: '$name ($listenerCount listeners)',
           value: averagePerIteration * _kScale,
           unit: 'ns per iteration',
-          name: '$name${listenerCount}_iteration',
+          name: '$name$listenerCount',
         );
     }
   }
 
-  void runRemoveListenerWhileNotifyingBenchmark(int iteration, {bool addResult = true}) {
-    const String name = 'removeListenerWhileNotifying';
+  void runRemoveListenerWhileNotifyingBenchmark(int iteration,
+      {bool addResult = true}) {
+    const String name = 'removeWhileNotify';
 
     final List<VoidCallback> listeners = <VoidCallback>[
       () {},
@@ -160,7 +161,7 @@ void main() {
           description: '$name ($listenerCount listeners)',
           value: averagePerIteration * _kScale,
           unit: 'ns per iteration',
-          name: '$name${listenerCount}_iteration',
+          name: '$name$listenerCount',
         );
     }
   }

@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'dart:async';
 
 import 'package:meta/meta.dart';
@@ -147,7 +149,7 @@ class AndroidEmulator extends Emulator {
   String _prop(String name) => _properties != null ? _properties[name] : null;
 
   @override
-  Future<void> launch() async {
+  Future<void> launch({@visibleForTesting Duration startupDuration}) async {
     final Process process = await _processUtils.start(
       <String>[_androidSdk.emulatorPath, '-avd', id],
     );
@@ -198,7 +200,7 @@ class AndroidEmulator extends Emulator {
     }));
 
     // Wait a few seconds for the emulator to start.
-    await Future<void>.delayed(const Duration(seconds: 3));
+    await Future<void>.delayed(startupDuration ?? const Duration(seconds: 3));
     earlyFailure = false;
     return;
   }

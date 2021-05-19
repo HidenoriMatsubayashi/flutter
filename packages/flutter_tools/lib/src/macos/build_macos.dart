@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'package:meta/meta.dart';
 
 import '../base/analyze_size.dart';
@@ -11,7 +13,8 @@ import '../base/logger.dart';
 import '../base/project_migrator.dart';
 import '../build_info.dart';
 import '../convert.dart';
-import '../globals.dart' as globals;
+import '../globals_null_migrated.dart' as globals;
+import '../ios/xcode_build_settings.dart';
 import '../ios/xcodeproj.dart';
 import '../project.dart';
 import 'cocoapod_utils.dart';
@@ -32,7 +35,7 @@ Future<void> buildMacOS({
 }) async {
   if (!flutterProject.macos.xcodeWorkspace.existsSync()) {
     throwToolExit('No macOS desktop project configured. '
-      'See https://flutter.dev/desktop#add-desktop-support-to-an-existing-app '
+      'See https://flutter.dev/desktop#add-desktop-support-to-an-existing-flutter-app '
       'to learn about adding macOS support to a project.');
   }
 
@@ -59,7 +62,6 @@ Future<void> buildMacOS({
     buildInfo: buildInfo,
     targetOverride: targetOverride,
     useMacOSConfig: true,
-    setSymroot: false,
   );
   await processPodsIfNeeded(flutterProject.macos, getMacOSBuildDirectory(), buildInfo.mode);
   // If the xcfilelists do not exist, create empty version.
@@ -111,6 +113,7 @@ Future<void> buildMacOS({
       else
         '-quiet',
       'COMPILER_INDEX_STORE_ENABLE=NO',
+      ...environmentVariablesAsXcodeBuildSettings(globals.platform)
     ],
     trace: true,
     stdoutErrorMatcher: verboseLogging ? null : _anyOutput,

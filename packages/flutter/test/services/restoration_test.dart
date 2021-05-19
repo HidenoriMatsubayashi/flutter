@@ -257,7 +257,7 @@ void main() {
         rootBucket2 = bucket;
       });
       expect(rootBucket2, isNotNull);
-      expect(rootBucket2!, isNot(same(rootBucket)));
+      expect(rootBucket2, isNot(same(rootBucket)));
       expect(manager.isReplacing, isTrue);
       expect(rootBucket2!.isReplacing, isTrue);
       await tester.idle();
@@ -322,7 +322,7 @@ Map<dynamic, dynamic> _createEncodedRestorationData1() {
       'child1' : <String, dynamic>{
         valuesMapKey : <String, dynamic>{
           'another value': 22,
-        }
+        },
       },
     },
   };
@@ -338,7 +338,7 @@ Map<dynamic, dynamic> _createEncodedRestorationData2() {
       'childFoo' : <String, dynamic>{
         valuesMapKey : <String, dynamic>{
           'bar': 'Hello',
-        }
+        },
       },
     },
   };

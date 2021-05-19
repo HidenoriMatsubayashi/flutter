@@ -22,8 +22,8 @@ import 'tooltip.dart';
 
 // Examples can assume:
 // enum Commands { heroAndScholar, hurricaneCame }
-// dynamic _heroAndScholar;
-// dynamic _selection;
+// late bool _heroAndScholar;
+// late dynamic _selection;
 // late BuildContext context;
 // void setState(VoidCallback fn) { }
 
@@ -112,7 +112,7 @@ class PopupMenuDivider extends PopupMenuEntry<Never> {
   bool represents(void value) => false;
 
   @override
-  _PopupMenuDividerState createState() => _PopupMenuDividerState();
+  State<PopupMenuDivider> createState() => _PopupMenuDividerState();
 }
 
 class _PopupMenuDividerState extends State<PopupMenuDivider> {
@@ -219,8 +219,10 @@ class PopupMenuItem<T> extends PopupMenuEntry<T> {
   const PopupMenuItem({
     Key? key,
     this.value,
+    this.onTap,
     this.enabled = true,
     this.height = kMinInteractiveDimension,
+    this.padding,
     this.textStyle,
     this.mouseCursor,
     required this.child,
@@ -230,6 +232,9 @@ class PopupMenuItem<T> extends PopupMenuEntry<T> {
 
   /// The value that will be returned by [showMenu] if this entry is selected.
   final T? value;
+
+  /// Called when the menu item is tapped.
+  final VoidCallback? onTap;
 
   /// Whether the user is permitted to select this item.
   ///
@@ -242,6 +247,15 @@ class PopupMenuItem<T> extends PopupMenuEntry<T> {
   /// Defaults to [kMinInteractiveDimension] pixels.
   @override
   final double height;
+
+  /// The padding of the menu item.
+  ///
+  /// Note that [height] may interact with the applied padding. For example,
+  /// If a [height] greater than the height of the sum of the padding and [child]
+  /// is provided, then the padding's effect will not be visible.
+  ///
+  /// When null, the horizontal padding defaults to 16.0 on both sides.
+  final EdgeInsets? padding;
 
   /// The text style of the popup menu item.
   ///
@@ -309,6 +323,8 @@ class PopupMenuItemState<T, W extends PopupMenuItem<T>> extends State<W> {
   /// the menu route.
   @protected
   void handleTap() {
+    widget.onTap?.call();
+
     Navigator.pop<T>(context, widget.value);
   }
 
@@ -327,7 +343,7 @@ class PopupMenuItemState<T, W extends PopupMenuItem<T>> extends State<W> {
       child: Container(
         alignment: AlignmentDirectional.centerStart,
         constraints: BoxConstraints(minHeight: widget.height),
-        padding: const EdgeInsets.symmetric(horizontal: _kMenuHorizontalPadding),
+        padding: widget.padding ?? const EdgeInsets.symmetric(horizontal: _kMenuHorizontalPadding),
         child: buildChild(),
       ),
     );
@@ -356,7 +372,7 @@ class PopupMenuItemState<T, W extends PopupMenuItem<T>> extends State<W> {
           mouseCursor: effectiveMouseCursor,
           child: item,
         ),
-      )
+      ),
     );
   }
 }
@@ -435,14 +451,18 @@ class CheckedPopupMenuItem<T> extends PopupMenuItem<T> {
     T? value,
     this.checked = false,
     bool enabled = true,
+    EdgeInsets? padding,
+    double height = kMinInteractiveDimension,
     Widget? child,
   }) : assert(checked != null),
        super(
-    key: key,
-    value: value,
-    enabled: enabled,
-    child: child,
-  );
+         key: key,
+         value: value,
+         enabled: enabled,
+         padding: padding,
+         height: height,
+         child: child,
+       );
 
   /// Whether to display a checkmark next to the menu item.
   ///
@@ -465,7 +485,7 @@ class CheckedPopupMenuItem<T> extends PopupMenuItem<T> {
   Widget? get child => super.child;
 
   @override
-  _CheckedPopupMenuItemState<T> createState() => _CheckedPopupMenuItemState<T>();
+  PopupMenuItemState<T, CheckedPopupMenuItem<T>> createState() => _CheckedPopupMenuItemState<T>();
 }
 
 class _CheckedPopupMenuItemState<T> extends PopupMenuItemState<T, CheckedPopupMenuItem<T>> with SingleTickerProviderStateMixin {
@@ -565,7 +585,7 @@ class _PopupMenu<T> extends StatelessWidget {
           label: semanticLabel,
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(
-              vertical: _kMenuVerticalPadding
+              vertical: _kMenuVerticalPadding,
             ),
             child: ListBody(children: children),
           ),
@@ -606,7 +626,6 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
     this.textDirection,
     this.topPadding,
     this.bottomPadding,
-    this.placement,
   );
 
   // Rectangle of underlying button, relative to the overlay's dimensions.
@@ -629,9 +648,6 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
   // Bottom padding of unsafe area.
   final double bottomPadding;
 
-  // The placement of the menu.
-  final PopupMenuPlacement placement;
-
   // We put the child wherever position specifies, so long as it will fit within
   // the specified parent size padded (inset) by 8. If necessary, we adjust the
   // child's position so that it fits.
@@ -640,9 +656,8 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
   BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
     // The menu can be at most the size of the overlay minus 8.0 pixels in each
     // direction.
-    return BoxConstraints.loose(
-      constraints.biggest - Offset(_kMenuScreenPadding * 2.0,
-        _kMenuScreenPadding * 2.0 + topPadding + bottomPadding) as Size,
+    return BoxConstraints.loose(constraints.biggest).deflate(
+      const EdgeInsets.all(_kMenuScreenPadding) + EdgeInsets.only(top: topPadding, bottom: bottomPadding),
     );
   }
 
@@ -653,22 +668,14 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
     // getConstraintsForChild.
 
     final double buttonHeight = size.height - position.top - position.bottom;
-
     // Find the ideal vertical position.
-    // Default vertical position is below the element that generates it.
-    double y = placement == PopupMenuPlacement.belowButton
-      ? position.top + buttonHeight
-      : position.top;
+    double y = position.top;
     if (selectedItemIndex != null && itemSizes != null) {
       double selectedItemOffset = _kMenuVerticalPadding;
       for (int index = 0; index < selectedItemIndex!; index += 1)
         selectedItemOffset += itemSizes[index]!.height;
       selectedItemOffset += itemSizes[selectedItemIndex!]!.height / 2;
-      if (placement == PopupMenuPlacement.belowButton) {
-        y = y - buttonHeight / 2.0 - selectedItemOffset;
-      } else {
-        y = y + buttonHeight / 2.0 - selectedItemOffset;
-      }
+      y = y + buttonHeight / 2.0 - selectedItemOffset;
     }
 
     // Find the ideal horizontal position.
@@ -700,7 +707,7 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
       x = size.width - childSize.width - _kMenuScreenPadding;
     if (y < _kMenuScreenPadding + topPadding)
       y = _kMenuScreenPadding + topPadding;
-    else if (y + childSize.height > size.height - _kMenuScreenPadding)
+    else if (y + childSize.height > size.height - _kMenuScreenPadding - bottomPadding)
       y = size.height - bottomPadding - _kMenuScreenPadding - childSize.height ;
     return Offset(x, y);
   }
@@ -715,7 +722,9 @@ class _PopupMenuRouteLayout extends SingleChildLayoutDelegate {
     return position != oldDelegate.position
       || selectedItemIndex != oldDelegate.selectedItemIndex
       || textDirection != oldDelegate.textDirection
-      || !listEquals(itemSizes, oldDelegate.itemSizes);
+      || !listEquals(itemSizes, oldDelegate.itemSizes)
+      || topPadding != oldDelegate.topPadding
+      || bottomPadding != oldDelegate.bottomPadding;
   }
 }
 
@@ -730,7 +739,6 @@ class _PopupMenuRoute<T> extends PopupRoute<T> {
     this.shape,
     this.color,
     required this.capturedThemes,
-    required this.placement,
   }) : itemSizes = List<Size?>.filled(items.length, null);
 
   final RelativeRect position;
@@ -742,7 +750,6 @@ class _PopupMenuRoute<T> extends PopupRoute<T> {
   final ShapeBorder? shape;
   final Color? color;
   final CapturedThemes capturedThemes;
-  final PopupMenuPlacement placement;
 
   @override
   Animation<double> createAnimation() {
@@ -789,7 +796,6 @@ class _PopupMenuRoute<T> extends PopupRoute<T> {
             Directionality.of(context),
             mediaQuery.padding.top,
             mediaQuery.padding.bottom,
-            placement,
           ),
           child: capturedThemes.wrap(menu),
         );
@@ -863,7 +869,6 @@ Future<T?> showMenu<T>({
   ShapeBorder? shape,
   Color? color,
   bool useRootNavigator = false,
-  PopupMenuPlacement placement = PopupMenuPlacement.aboveButton,
 }) {
   assert(context != null);
   assert(position != null);
@@ -893,7 +898,6 @@ Future<T?> showMenu<T>({
     shape: shape,
     color: color,
     capturedThemes: InheritedTheme.capture(from: context, to: navigator.context),
-    placement: placement,
   ));
 }
 
@@ -915,17 +919,6 @@ typedef PopupMenuCanceled = void Function();
 ///
 /// Used by [PopupMenuButton.itemBuilder].
 typedef PopupMenuItemBuilder<T> = List<PopupMenuEntry<T>> Function(BuildContext context);
-
-/// The placement of the menu popped up by press the [PopupMenuButton].
-///
-/// Used by [PopupMenuButton.placement].
-enum PopupMenuPlacement {
-  /// The popup menu is positioned above the button that generates it.
-  aboveButton,
-
-  /// The popup menu is positioned below the button that generates it.
-  belowButton,
-}
 
 /// Displays a menu when pressed and calls [onSelected] when the menu is dismissed
 /// because an item was selected. The value passed to [onSelected] is the value of
@@ -999,12 +992,13 @@ class PopupMenuButton<T> extends StatefulWidget {
     this.shape,
     this.color,
     this.enableFeedback,
-    this.placement = PopupMenuPlacement.aboveButton,
   }) : assert(itemBuilder != null),
        assert(offset != null),
        assert(enabled != null),
-       assert(!(child != null && icon != null),
-           'You can only pass [child] or [icon], not both.'),
+       assert(
+         !(child != null && icon != null),
+         'You can only pass [child] or [icon], not both.',
+       ),
        super(key: key);
 
   /// Called when the button is pressed to create the items to show in the menu.
@@ -1051,7 +1045,7 @@ class PopupMenuButton<T> extends StatefulWidget {
 
   /// The offset applied to the Popup Menu Button.
   ///
-  /// When not set, the Popup Menu Button will be positioned directly below
+  /// When not set, the Popup Menu Button will be positioned directly next to
   /// the button that was used to create it.
   final Offset offset;
 
@@ -1094,11 +1088,6 @@ class PopupMenuButton<T> extends StatefulWidget {
   ///  * [Feedback] for providing platform-specific feedback to certain actions.
   final bool? enableFeedback;
 
-  /// The placement of the menu popped up by press the [PopupMenuButton].
-  ///
-  /// Default to [PopupMenuPlacement.aboveButton].
-  final PopupMenuPlacement placement;
-
   /// If provided, the size of the [Icon].
   ///
   /// If this property is null, the default size is 24.0 pixels.
@@ -1113,9 +1102,8 @@ class PopupMenuButton<T> extends StatefulWidget {
 /// See [showButtonMenu] for a way to programmatically open the popup menu
 /// of your button state.
 class PopupMenuButtonState<T> extends State<PopupMenuButton<T>> {
-  final GlobalKey _menuButtonKey = GlobalKey();
   /// A method to show a popup menu with the items supplied to
-  /// [PopupMenuButton.itemBuilder] at the position below your [PopupMenuButton].
+  /// [PopupMenuButton.itemBuilder] at the position of your [PopupMenuButton].
   ///
   /// By default, it is called when the user taps the button and [PopupMenuButton.enabled]
   /// is set to `true`. Moreover, you can open the button by calling the method manually.
@@ -1124,14 +1112,8 @@ class PopupMenuButtonState<T> extends State<PopupMenuButton<T>> {
   /// show the menu of the button with `globalKey.currentState.showButtonMenu`.
   void showButtonMenu() {
     final PopupMenuThemeData popupMenuTheme = PopupMenuTheme.of(context);
+    final RenderBox button = context.findRenderObject()! as RenderBox;
     final RenderBox overlay = Navigator.of(context).overlay!.context.findRenderObject()! as RenderBox;
-    final RenderBox button;
-    if (widget.placement == PopupMenuPlacement.belowButton) {
-      button = _menuButtonKey.currentContext!.findRenderObject()! as RenderBox;
-    } else {
-      // Backward compatible.
-      button = context.findRenderObject()! as RenderBox;
-    }
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(widget.offset, ancestor: overlay),
@@ -1150,18 +1132,15 @@ class PopupMenuButtonState<T> extends State<PopupMenuButton<T>> {
         position: position,
         shape: widget.shape ?? popupMenuTheme.shape,
         color: widget.color ?? popupMenuTheme.color,
-        placement: widget.placement,
       )
       .then<void>((T? newValue) {
         if (!mounted)
           return null;
         if (newValue == null) {
-          if (widget.onCanceled != null)
-            widget.onCanceled!();
+          widget.onCanceled?.call();
           return null;
         }
-        if (widget.onSelected != null)
-          widget.onSelected!(newValue);
+        widget.onSelected?.call(newValue);
       });
     }
   }
@@ -1191,39 +1170,17 @@ class PopupMenuButtonState<T> extends State<PopupMenuButton<T>> {
           onTap: widget.enabled ? showButtonMenu : null,
           canRequestFocus: _canRequestFocus,
           enableFeedback: enableFeedback,
-          child: LayoutBuilder(
-            builder: (BuildContext context, BoxConstraints constraints) {
-              return UnconstrainedBox(
-                constrainedAxis: Axis.horizontal,
-                child: LimitedBox(
-                  key: _menuButtonKey,
-                  maxHeight: constraints.maxHeight,
-                  child: widget.child,
-                ),
-              );
-            },
-          ),
+          child: widget.child,
         ),
       );
 
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        return UnconstrainedBox(
-          constrainedAxis: Axis.horizontal,
-          child: LimitedBox(
-            maxHeight: constraints.maxHeight,
-            child: IconButton(
-              key: _menuButtonKey,
-              icon: widget.icon ?? Icon(Icons.adaptive.more),
-              padding: widget.padding,
-              iconSize: widget.iconSize ?? 24.0,
-              tooltip: widget.tooltip ?? MaterialLocalizations.of(context).showMenuTooltip,
-              onPressed: widget.enabled ? showButtonMenu : null,
-              enableFeedback: enableFeedback,
-            ),
-          ),
-        );
-      },
+    return IconButton(
+      icon: widget.icon ?? Icon(Icons.adaptive.more),
+      padding: widget.padding,
+      iconSize: widget.iconSize ?? 24.0,
+      tooltip: widget.tooltip ?? MaterialLocalizations.of(context).showMenuTooltip,
+      onPressed: widget.enabled ? showButtonMenu : null,
+      enableFeedback: enableFeedback,
     );
   }
 }

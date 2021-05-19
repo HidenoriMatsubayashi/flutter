@@ -3,8 +3,6 @@
 // found in the LICENSE file.
 
 
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,7 +47,7 @@ void main() {
     });
 
     await SystemChrome.setApplicationSwitcherDescription(
-      const ApplicationSwitcherDescription(label: 'Example label', primaryColor: 0xFF00FF00)
+      const ApplicationSwitcherDescription(label: 'Example label', primaryColor: 0xFF00FF00),
     );
 
     expect(log, hasLength(1));
@@ -67,7 +65,7 @@ void main() {
     });
 
     await SystemChrome.setApplicationSwitcherDescription(
-      const ApplicationSwitcherDescription(label: 'Example label', primaryColor: 0xFF00FF00)
+      const ApplicationSwitcherDescription(label: 'Example label', primaryColor: 0xFF00FF00),
     );
 
     expect(log, isNotEmpty);
@@ -87,5 +85,18 @@ void main() {
       'SystemChrome.setEnabledSystemUIOverlays',
       arguments: <String>['SystemUiOverlay.top'],
     ));
+  });
+
+  test('toString works as intended', () async {
+    const SystemUiOverlayStyle systemUiOverlayStyle = SystemUiOverlayStyle();
+
+    expect(systemUiOverlayStyle.toString(), 'SystemUiOverlayStyle({'
+      'systemNavigationBarColor: null, '
+      'systemNavigationBarDividerColor: null, '
+      'statusBarColor: null, '
+      'statusBarBrightness: null, '
+      'statusBarIconBrightness: null, '
+      'systemNavigationBarIconBrightness: null})',
+    );
   });
 }

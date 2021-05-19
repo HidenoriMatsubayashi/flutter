@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:file/file.dart';
+// @dart = 2.8
+
 import 'package:meta/meta.dart';
 
 import '../artifacts.dart';
@@ -14,14 +15,11 @@ import '../base/process.dart';
 import '../base/utils.dart';
 import '../build_info.dart';
 import '../build_system/build_system.dart';
-import '../build_system/targets/common.dart';
-import '../build_system/targets/icon_tree_shaker.dart';
 import '../build_system/targets/ios.dart';
 import '../cache.dart';
-import '../convert.dart';
+import '../flutter_plugins.dart';
 import '../globals.dart' as globals;
 import '../macos/cocoapod_utils.dart';
-import '../plugins.dart';
 import '../project.dart';
 import '../runner/flutter_command.dart' show DevelopmentArtifact, FlutterCommandResult;
 import '../version.dart';
@@ -49,7 +47,7 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
     usesDartDefineOption();
     addSplitDebugInfoOption();
     addDartObfuscationOption();
-    usesExtraDartFlagOptions();
+    usesExtraDartFlagOptions(verboseHelp: verboseHelp);
     addNullSafetyModeOptions(hide: !verboseHelp);
     addEnableExperimentation(hide: !verboseHelp);
 
@@ -73,15 +71,15 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
               'By default, all build configurations are built.'
       )
       ..addFlag('universal',
-        help: '(Deprecated) Produce universal frameworks that include all valid architectures.',
+        help: '(deprecated) Produce universal frameworks that include all valid architectures.',
         negatable: true,
-        hide: true,
+        hide: !verboseHelp,
       )
       ..addFlag('xcframework',
         help: 'Produce xcframeworks that include all valid architectures.',
         negatable: false,
         defaultsTo: true,
-        hide: true,
+        hide: !verboseHelp,
       )
       ..addFlag('cocoapods',
         help: 'Produce a Flutter.podspec instead of an engine Flutter.xcframework (recommended if host app uses CocoaPods).',
@@ -93,8 +91,8 @@ class BuildIOSFrameworkCommand extends BuildSubCommand {
       )
       ..addFlag('force',
         abbr: 'f',
-        help: 'Force Flutter.podspec creation on the master channel. For testing only.',
-        hide: true
+        help: 'Force Flutter.podspec creation on the master channel. This is only intended for testing the tool itself.',
+        hide: !verboseHelp,
       );
   }
 
@@ -286,7 +284,7 @@ $licenseSource
 LICENSE
   }
   s.author                = { 'Flutter Dev Team' => 'flutter-dev@googlegroups.com' }
-  s.source                = { :http => '${_cache.storageBaseUrl}/flutter_infra/flutter/${_cache.engineRevision}/$artifactsMode/artifacts.zip' }
+  s.source                = { :http => '${_cache.storageBaseUrl}/flutter_infra_release/flutter/${_cache.engineRevision}/$artifactsMode/artifacts.zip' }
   s.documentation_url     = 'https://flutter.dev/docs'
   s.platform              = :ios, '8.0'
   s.vendored_frameworks   = 'Flutter.xcframework'
@@ -321,7 +319,7 @@ end
 
     try {
       // Copy xcframework engine cache framework to mode directory.
-      globals.fsUtils.copyDirectorySync(
+      copyDirectory(
         globals.fs.directory(engineCacheFlutterFrameworkDirectory),
         flutterFrameworkCopy,
       );
@@ -362,28 +360,23 @@ end
           flutterRootDir: globals.fs.directory(Cache.flutterRoot),
           defines: <String, String>{
             kTargetFile: targetFile,
-            kBuildMode: getNameForBuildMode(buildInfo.mode),
             kTargetPlatform: getNameForTargetPlatform(TargetPlatform.ios),
-            kIconTreeShakerFlag: buildInfo.treeShakeIcons.toString(),
-            kDartDefines: jsonEncode(buildInfo.dartDefines),
             kBitcodeFlag: 'true',
-            if (buildInfo?.extraGenSnapshotOptions?.isNotEmpty ?? false)
-              kExtraGenSnapshotOptions:
-                  buildInfo.extraGenSnapshotOptions.join(','),
-            if (buildInfo?.extraFrontEndOptions?.isNotEmpty ?? false)
-              kExtraFrontEndOptions: buildInfo.extraFrontEndOptions.join(','),
             kIosArchs: defaultIOSArchsForEnvironment(sdkType)
                 .map(getNameForDarwinArch)
                 .join(' '),
             kSdkRoot: await globals.xcode.sdkLocation(sdkType),
+            ...buildInfo.toBuildSystemEnvironment(),
           },
           artifacts: globals.artifacts,
           fileSystem: globals.fs,
           logger: globals.logger,
           processManager: globals.processManager,
+          platform: globals.platform,
           engineVersion: globals.artifacts.isLocalEngine
               ? null
               : globals.flutterVersion.engineRevision,
+          generateDartPluginRegistry: true,
         );
         Target target;
         // Always build debug for simulator.
@@ -524,7 +517,15 @@ end
       '-create-xcframework',
       for (Directory framework in frameworks) ...<String>[
         '-framework',
-        framework.path
+        framework.path,
+        ...framework.parent
+            .listSync()
+            .where((FileSystemEntity entity) =>
+                entity.basename.endsWith('bcsymbolmap') ||
+                entity.basename.endsWith('dSYM'))
+            .map((FileSystemEntity entity) =>
+                <String>['-debug-symbols', entity.path])
+            .expand<String>((List<String> parameter) => parameter)
       ],
       '-output',
       outputDirectory.childDirectory('$frameworkBinaryName.xcframework').path

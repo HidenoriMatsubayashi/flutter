@@ -259,14 +259,13 @@ class CupertinoFormSection extends StatelessWidget {
     // Refactored the decorate children group in one place to avoid repeating it
     // twice down bellow in the returned widget.
     final DecoratedBox decoratedChildrenGroup = DecoratedBox(
-      decoration: decoration ??
-          BoxDecoration(
-            color: CupertinoDynamicColor.resolve(
-                decoration?.color ??
-                    CupertinoColors.secondarySystemGroupedBackground,
-                context),
-            borderRadius: childrenGroupBorderRadius,
-          ),
+      decoration: decoration ?? BoxDecoration(
+        color: CupertinoDynamicColor.resolve(
+          decoration?.color ?? CupertinoColors.secondarySystemGroupedBackground,
+          context,
+        ),
+        borderRadius: childrenGroupBorderRadius,
+      ),
       child: Column(
         children: childrenWithDividers,
       ),
@@ -288,18 +287,19 @@ class CupertinoFormSection extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: _kDefaultHeaderMargin,
-                  child: header!,
+                  child: header,
                 ),
               ),
             ),
           Padding(
             padding: margin,
             child: clipBehavior == Clip.none
-                ? decoratedChildrenGroup
-                : ClipRRect(
-                    borderRadius: childrenGroupBorderRadius,
-                    clipBehavior: clipBehavior,
-                    child: decoratedChildrenGroup),
+              ? decoratedChildrenGroup
+              : ClipRRect(
+                  borderRadius: childrenGroupBorderRadius,
+                  clipBehavior: clipBehavior,
+                  child: decoratedChildrenGroup,
+                ),
           ),
           if (footer != null)
             Align(
@@ -311,7 +311,7 @@ class CupertinoFormSection extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: _kDefaultFooterMargin,
-                  child: footer!,
+                  child: footer,
                 ),
               ),
             ),

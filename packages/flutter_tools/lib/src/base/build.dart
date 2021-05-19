@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// @dart = 2.8
+
 import 'package:meta/meta.dart';
 import 'package:process/process.dart';
 
@@ -135,25 +137,38 @@ class AOTSnapshotter {
     final List<String> genSnapshotArgs = <String>[
       '--deterministic',
     ];
+
+    // We strip snapshot by default, but allow to suppress this behavior
+    // by supplying --no-strip in extraGenSnapshotOptions.
+    bool shouldStrip = true;
+
     if (extraGenSnapshotOptions != null && extraGenSnapshotOptions.isNotEmpty) {
       _logger.printTrace('Extra gen_snapshot options: $extraGenSnapshotOptions');
-      genSnapshotArgs.addAll(extraGenSnapshotOptions);
+      for (final String option in extraGenSnapshotOptions) {
+        if (option == '--no-strip') {
+          shouldStrip = false;
+          continue;
+        }
+        genSnapshotArgs.add(option);
+      }
     }
 
     final String assembly = _fileSystem.path.join(outputDir.path, 'snapshot_assembly.S');
-    if (platform == TargetPlatform.ios || platform == TargetPlatform.darwin_x64) {
+    if (platform == TargetPlatform.ios || platform == TargetPlatform.darwin) {
       genSnapshotArgs.addAll(<String>[
         '--snapshot_kind=app-aot-assembly',
         '--assembly=$assembly',
-        '--strip'
       ]);
     } else {
       final String aotSharedLibrary = _fileSystem.path.join(outputDir.path, 'app.so');
       genSnapshotArgs.addAll(<String>[
         '--snapshot_kind=app-aot-elf',
         '--elf=$aotSharedLibrary',
-        '--strip'
       ]);
+    }
+
+    if (shouldStrip) {
+      genSnapshotArgs.add('--strip');
     }
 
     if (platform == TargetPlatform.android_arm || darwinArch == DarwinArch.armv7) {
@@ -203,7 +218,7 @@ class AOTSnapshotter {
 
     // On iOS and macOS, we use Xcode to compile the snapshot into a dynamic library that the
     // end-developer can link into their app.
-    if (platform == TargetPlatform.ios || platform == TargetPlatform.darwin_x64) {
+    if (platform == TargetPlatform.ios || platform == TargetPlatform.darwin) {
       final RunResult result = await _buildFramework(
         appleArch: darwinArch,
         isIOS: platform == TargetPlatform.ios,
@@ -296,9 +311,11 @@ class AOTSnapshotter {
       TargetPlatform.android_arm64,
       TargetPlatform.android_x64,
       TargetPlatform.ios,
-      TargetPlatform.darwin_x64,
+      TargetPlatform.darwin,
       TargetPlatform.linux_x64,
+      TargetPlatform.linux_arm64,
       TargetPlatform.windows_x64,
+      TargetPlatform.windows_uwp_x64,
     ].contains(platform);
   }
 }
