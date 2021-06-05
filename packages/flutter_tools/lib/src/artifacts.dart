@@ -461,6 +461,11 @@ class CachedArtifacts implements Artifacts {
     // and not the gen_snapshot for darwin as a target platform.
     if (platform != null && artifact == Artifact.genSnapshot) {
       final String engineDir = _getEngineArtifactsPath(platform, mode)!;
+      if (getNameForHostPlatformArch(getCurrentHostPlatform()) !=
+          getNameForTargetPlatformArch(platform)) {
+        final String hostPlatform = getNameForHostPlatform(getCurrentHostPlatform());
+        return _fileSystem.path.join(engineDir, hostPlatform, _artifactToFileName(artifact));
+      }
       return _fileSystem.path.join(engineDir, _artifactToFileName(artifact));
     }
     return _getHostArtifactPath(artifact, platform ?? _currentHostPlatform(_platform, _operatingSystemUtils), mode);

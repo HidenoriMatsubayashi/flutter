@@ -221,21 +221,23 @@ class FlutterSdk extends EngineCachedArtifact {
   @override
   List<List<String>> getBinaryDirs() {
     // Currently only Linux supports both arm64 and x64.
-    final String arch = cache.getHostPlatformArchName();
     return <List<String>>[
       <String>['common', 'flutter_patched_sdk.zip'],
       <String>['common', 'flutter_patched_sdk_product.zip'],
       if (cache.includeAllPlatforms) ...<List<String>>[
         <String>['windows-x64', 'windows-x64/artifacts.zip'],
-        <String>['linux-$arch', 'linux-$arch/artifacts.zip'],
+        <String>['linux-x64', 'linux-x64/artifacts.zip'],
+        <String>['linux-arm64', 'linux-arm64/artifacts.zip'],
         <String>['darwin-x64', 'darwin-x64/artifacts.zip'],
       ]
       else if (_platform.isWindows)
         <String>['windows-x64', 'windows-x64/artifacts.zip']
       else if (_platform.isMacOS)
         <String>['darwin-x64', 'darwin-x64/artifacts.zip']
-      else if (_platform.isLinux)
-        <String>['linux-$arch', 'linux-$arch/artifacts.zip'],
+      else if (_platform.isLinux) ...<List<String>>[
+        <String>['linux-x64', 'linux-x64/artifacts.zip'],
+        <String>['linux-arm64', 'linux-arm64/artifacts.zip'],
+      ],
     ];
   }
 
@@ -344,11 +346,13 @@ class LinuxEngineArtifacts extends EngineCachedArtifact {
   @override
   List<List<String>> getBinaryDirs() {
     if (_platform.isLinux || ignorePlatformFiltering) {
-      final String arch = cache.getHostPlatformArchName();
       return <List<String>>[
-        <String>['linux-$arch', 'linux-$arch/linux-$arch-flutter-gtk.zip'],
-        <String>['linux-$arch-profile', 'linux-$arch-profile/linux-$arch-flutter-gtk.zip'],
-        <String>['linux-$arch-release', 'linux-$arch-release/linux-$arch-flutter-gtk.zip'],
+        <String>['linux-x64', 'linux-x64/linux-x64-flutter-gtk.zip'],
+        <String>['linux-arm64', 'linux-arm64/linux-arm64-flutter-gtk.zip'],
+        <String>['linux-x64-profile', 'linux-x64-profile/linux-x64-flutter-gtk.zip'],
+        <String>['linux-arm64-profile', 'linux-arm64-profile/linux-arm64-flutter-gtk.zip'],
+        <String>['linux-x64-release', 'linux-x64-release/linux-x64-flutter-gtk.zip'],
+        <String>['linux-arm64-release', 'linux-arm64-release/linux-arm64-flutter-gtk.zip'],
       ];
     }
     return const <List<String>>[];
